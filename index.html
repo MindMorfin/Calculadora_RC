@@ -65,7 +65,6 @@ input[type=number]{width:100%;font:inherit;font-size:1rem;padding:8px 10px;borde
 .actionbar{flex-wrap:nowrap}
 .actionbar #run{flex:1 1 auto;justify-content:center;font-size:1rem;padding:12px 14px;min-width:0}
 .actionbar #clear{flex:0 0 auto;padding:12px 14px}
-html.fit .a-sim .actionbar{position:sticky;bottom:-14px;background:var(--panel);margin-bottom:-14px;padding-bottom:14px;z-index:2}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .results{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:4px}
 .res{border-left:3px solid var(--trace);padding:4px 10px}
@@ -91,42 +90,23 @@ th:first-child,td:first-child{text-align:left}
 .segs{display:flex;gap:6px;flex-wrap:wrap}
 
 /* ----- Distribución ----- */
-.layout{display:grid;gap:16px;grid-template-columns:1fr;grid-template-areas:"sim" "res" "tbl" "calc" "hist"}
-.a-sim{grid-area:sim}.a-res{grid-area:res}.a-tbl{grid-area:tbl}.a-calc{grid-area:calc}.a-hist{grid-area:hist}
+.layout{display:grid;gap:16px;grid-template-columns:1fr;grid-template-areas:"sim" "res" "tbl" "hist"}
+.a-sim{grid-area:sim}.a-res{grid-area:res}.a-tbl{grid-area:tbl}.a-hist{grid-area:hist}
 .tabs{margin:0 0 12px}
 .hist-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.layout>*{min-width:0}
 
-/* Horizontal: tres columnas */
-html.lay-h .layout{grid-template-columns:minmax(300px,.9fr) minmax(0,1.5fr) minmax(320px,1fr);
-  grid-template-areas:"sim res tbl" "sim hist tbl"}
-html.lay-h .a-sim .controls{grid-template-columns:1fr 1fr}
+/* Horizontal: valores y gráfica juntos arriba, lo demás abajo. Nada con scroll propio. */
+html.lay-h .layout{grid-template-columns:minmax(300px,.85fr) minmax(0,1.7fr);
+  grid-template-areas:"sim res" "tbl tbl" "hist hist"}
+html.lay-h .a-res .chartbox{height:390px}
+html.lay-h svg.sch{max-height:220px;margin:0 auto}
+@media(min-width:1250px){ html.lay-h .layout{grid-template-areas:"sim res" "hist tbl"} }
+@media(min-width:1600px){ html.lay-h .layout{grid-template-columns:minmax(340px,.8fr) minmax(0,1.8fr)} }
 
-/* Vertical: gráfica a lo ancho arriba y dos columnas abajo */
-html.lay-v.wide .layout{grid-template-columns:1fr 1fr;grid-template-areas:"res res" "sim tbl" "hist tbl"}
-
-/* Ajuste a la pantalla: todo a la vista, cada panel con su propio scroll */
-html.fit,html.fit body{height:100%}
-html.fit body{overflow:hidden}
-html.fit .wrap{max-width:none;height:100%;display:flex;flex-direction:column;padding:14px 18px}
-html.fit header{margin-bottom:12px}
-html.fit header>div{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
-html.fit header h1{font-size:1.55rem;margin:0}
-html.fit header p{font-size:.92rem}
-html.fit .layout{flex:1;min-height:0;gap:14px}
-html.fit.lay-h .layout{grid-template-rows:minmax(0,1.3fr) minmax(0,1fr)}
-html.fit.lay-v .layout{grid-template-rows:minmax(0,1.1fr) minmax(0,1.25fr) minmax(0,.75fr)}
-html.fit .panel{min-height:0;overflow:auto;padding:14px}
-html.fit svg.sch{max-height:190px;margin:0 auto}
-html.lay-v.wide:not(.fit) svg.sch{max-height:240px;margin:0 auto}
-html.fit .panel h2{font-size:1rem;margin-bottom:8px}
-html.fit .a-res{display:flex;flex-direction:column}
-html.fit .a-res .chartbox{flex:1;min-height:170px;height:auto}
-html.fit .results{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
-html.fit .res b{font-size:1.05rem}
-html.fit .eq{font-size:.82rem;line-height:1.6}
-html.fit table{font-size:.85rem}
-html.fit th,html.fit td{padding:4px 8px}
-@media(min-width:1600px){ html.lay-h .layout{grid-template-columns:minmax(340px,.85fr) minmax(0,1.6fr) minmax(380px,1fr)} }
+/* Vertical: todo apilado en una columna */
+html.lay-v .layout{grid-template-columns:1fr;grid-template-areas:"sim" "res" "tbl" "hist"}
+html.lay-v svg.sch{max-height:240px;margin:0 auto}
 
 :root{--c-tau:#C77700;--c-set:#2F6BD8;--trace3:#6A4FB3;--on-trace:#FFFFFF;--trace-deep:#8A0F40}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c-tau:#F5B53D;--c-set:#6FA6FF;--trace3:#B9A6FF;--on-trace:#2A0616;--trace-deep:#B8416F}}
@@ -176,7 +156,6 @@ h3.sub{font-size:.9rem;margin:4px 0 6px;color:var(--ink-soft)}
 #designBox .eq{margin-bottom:12px}
 /* El menú de configuración no arrastra la página de atrás */
 .drawer-body{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-html.fit .panel{overscroll-behavior:contain}
 html.cfg-open,html.cfg-open body{overflow:hidden}
 .scrim{touch-action:none;overscroll-behavior:contain}
 </style>
@@ -332,7 +311,7 @@ const DEFAULTS={auto:true,anim:'normal',range:6,showI:false,showInput:true,
 const SCHEMA=[
  {g:'Pantalla',items:[
   {k:'layout',l:'Distribución',o:[['auto','Automática'],['h','Horizontal'],['v','Vertical']],
-   h:'Automática usa horizontal en pantallas anchas y vertical en monitores girados, tabletas y celulares. En pantallas angostas siempre se usa vertical.'}]},
+   h:'Horizontal pone los valores y la gráfica lado a lado; vertical apila todo en una columna. Automática elige según el ancho de la pantalla.'}]},
  {g:'Simulación',items:[
   {k:'auto',l:'Cuándo simular',o:[[true,'Al escribir los valores'],[false,'Al presionar Simular']]},
   {k:'anim',l:'Animación al presionar Simular',o:[['none','Sin animación'],['fast','Rápida'],['normal','Normal'],['real','Tiempo real']],
@@ -369,7 +348,7 @@ function fmtT(t){ if(t===0) return '0 s';
   if(t<1&&rounds(t*1e3)<1000) return fmt(t*1e3)+' ms';
   return fmt(t)+' s'; }
 function fmtTu(t){ if(CFG.tUnit==='s') return fmt(t)+' s'; if(CFG.tUnit==='ms') return fmt(t*1e3)+' ms'; return fmtT(t); }
-function toChart(){ if(document.documentElement.classList.contains('fit')) return;
+function toChart(){
   $('ch').closest('.panel').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); }
 function fmtR(r){ if(!isFinite(r)) return '—'; const d=Math.max(4,CFG.sig); if(r>=1e6) return fmt(r/1e6,d)+' MΩ'; if(r>=1e3) return fmt(r/1e3,d)+' kΩ'; return fmt(r,d)+' Ω'; }
 function fmtC(c){ if(!isFinite(c)) return '—'; const d=Math.max(4,CFG.sig); if(c>=1e-3) return fmt(c*1e3,d)+' mF'; if(c>=1e-6) return fmt(c*1e6,d)+' µF'; if(c>=1e-9) return fmt(c*1e9,d)+' nF'; return fmt(c*1e12,d)+' pF'; }
@@ -711,12 +690,9 @@ function setType(t,silent){
 function applyLayout(){
   const w=window.innerWidth, h=window.innerHeight, r=document.documentElement;
   let m=CFG.layout;
-  if(m==='auto') m=(w>=h&&w>=1000)?'h':'v';
-  if(m==='h'&&w<900) m='v';
-  const wide=w>=700;
-  const fit = m==='h' ? h>=600 : (wide&&h>=860);
+  if(m==='auto') m=(w>=1000&&w>=h*0.9)?'h':'v';
+  if(m==='h'&&w<820) m='v';
   r.classList.toggle('lay-h',m==='h'); r.classList.toggle('lay-v',m==='v');
-  r.classList.toggle('wide',wide); r.classList.toggle('fit',fit);
 }
 
 /* ===== Panel de configuración ===== */
