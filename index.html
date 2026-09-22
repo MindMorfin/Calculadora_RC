@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador y calculadora de circuitos RC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F9FB; --grid:#D6E6EF; --ink:#1B2F5B; --ink-soft:#4F6282;
+  --trace:#C2185B; --trace2:#2E7D6B; --panel:#FFFFFF; --line:#B9CFDD; --warn:#9A5B00; --bg:#F5F9FB; --bg-grid:#D6E6EF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1C1D20; --grid:#2E3035; --ink:#E7E8EB; --ink-soft:#A4A7AE;
+    --trace:#FF6FA8; --trace2:#5FD1B4; --panel:#2A2B30; --line:#43464D; --warn:#F2B35C; --bg:#141414; --bg-grid:#252525;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1C1D20; --grid:#2E3035; --ink:#E7E8EB; --ink-soft:#A4A7AE;
+  --trace:#FF6FA8; --trace2:#5FD1B4; --panel:#2A2B30; --line:#43464D; --warn:#F2B35C; --bg:#141414; --bg-grid:#252525;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; color:var(--ink); font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--bg-grid) 1px,transparent 1px),linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px);
+  background-size:24px 24px; line-height:1.5;
+}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 48px}
+header h1{font-size:clamp(1.7rem,5vw,2.6rem);font-weight:800;line-height:1.05;margin:0 0 6px;letter-spacing:-.02em}
+header p{margin:0;color:var(--ink-soft);max-width:62ch}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab,.seg{font:inherit;font-weight:700;padding:10px 16px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:999px;cursor:pointer}
+.seg{padding:7px 12px;font-size:.9rem}
+.tab[aria-pressed="true"],.seg[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--trace);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:820px){.grid2{grid-template-columns:1fr 1fr}}
+.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:16px}
+.mt{margin-top:16px}
+.panel h2{font-size:1.1rem;margin:0 0 10px}
+svg.sch{width:100%;height:auto;display:block}
+svg.sch .w{stroke:var(--ink);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+svg.sch text{fill:var(--ink);font-family:"Archivo",sans-serif;font-size:13px}
+svg.sch .val{fill:var(--trace);font-weight:700}
+svg.sch .dot{fill:var(--ink)}
+.hidden{display:none!important}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+label{font-size:.85rem;color:var(--ink-soft);display:block}
+input[type=number]{width:100%;font:inherit;font-size:1rem;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{font:inherit;font-weight:800;padding:11px 16px;border-radius:8px;border:2px solid var(--trace);cursor:pointer;
+  background:var(--trace);color:var(--on-trace);box-shadow:0 3px 0 var(--trace-deep);display:inline-flex;align-items:center;gap:8px;
+  letter-spacing:.01em}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--trace-deep)}
+.btn.ghost{background:var(--panel);color:var(--trace);box-shadow:0 3px 0 var(--line)}
+.btn .ico{font-size:.95em;line-height:1}
+.actionbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-start;align-items:center;margin-top:16px;padding-top:14px;border-top:2px solid var(--line)}
+.actionbar{flex-wrap:nowrap}
+.actionbar #run{flex:1 1 auto;justify-content:center;font-size:1rem;padding:12px 14px;min-width:0}
+.actionbar #clear{flex:0 0 auto;padding:12px 14px}
+html.fit .a-sim .actionbar{position:sticky;bottom:-14px;background:var(--panel);margin-bottom:-14px;padding-bottom:14px;z-index:2}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:4px}
+.res{border-left:3px solid var(--trace);padding:4px 10px}
+.res b{display:block;font-size:1.15rem}
+.res span{font-size:.8rem;color:var(--ink-soft)}
+.chartbox{position:relative;width:100%;height:280px;margin-top:10px}
+canvas{width:100%;height:100%;display:block}
+.readout{display:flex;gap:16px;flex-wrap:wrap;font-size:.92rem;margin-top:8px;color:var(--ink-soft)}
+.readout strong{color:var(--ink)}
+.eq{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88rem;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;white-space:pre;line-height:1.7;margin-top:12px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+.note{font-size:.88rem;color:var(--warn);margin:8px 0 0}
+.muted{color:var(--ink-soft);font-size:.9rem;margin:0}
+.hist{list-style:none;margin:0;padding:0}
+.hist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap}
+.hist .h-main{font-size:.92rem}
+.hist .h-main b{display:block}
+.hist .h-sub{color:var(--ink-soft);font-size:.82rem}
+.hist .btn{padding:6px 10px;font-size:.85rem}
+.segs{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ----- Distribución ----- */
+.layout{display:grid;gap:16px;grid-template-columns:1fr;grid-template-areas:"sim" "res" "tbl" "calc" "hist"}
+.a-sim{grid-area:sim}.a-res{grid-area:res}.a-tbl{grid-area:tbl}.a-calc{grid-area:calc}.a-hist{grid-area:hist}
+.tabs{margin:0 0 12px}
+.hist-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+
+/* Horizontal: tres columnas */
+html.lay-h .layout{grid-template-columns:minmax(300px,.9fr) minmax(0,1.5fr) minmax(320px,1fr);
+  grid-template-areas:"sim res tbl" "sim hist tbl"}
+html.lay-h .a-sim .controls{grid-template-columns:1fr 1fr}
+
+/* Vertical: gráfica a lo ancho arriba y dos columnas abajo */
+html.lay-v.wide .layout{grid-template-columns:1fr 1fr;grid-template-areas:"res res" "sim tbl" "hist tbl"}
+
+/* Ajuste a la pantalla: todo a la vista, cada panel con su propio scroll */
+html.fit,html.fit body{height:100%}
+html.fit body{overflow:hidden}
+html.fit .wrap{max-width:none;height:100%;display:flex;flex-direction:column;padding:14px 18px}
+html.fit header{margin-bottom:12px}
+html.fit header>div{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+html.fit header h1{font-size:1.55rem;margin:0}
+html.fit header p{font-size:.92rem}
+html.fit .layout{flex:1;min-height:0;gap:14px}
+html.fit.lay-h .layout{grid-template-rows:minmax(0,1.3fr) minmax(0,1fr)}
+html.fit.lay-v .layout{grid-template-rows:minmax(0,1.1fr) minmax(0,1.25fr) minmax(0,.75fr)}
+html.fit .panel{min-height:0;overflow:auto;padding:14px}
+html.fit svg.sch{max-height:190px;margin:0 auto}
+html.lay-v.wide:not(.fit) svg.sch{max-height:240px;margin:0 auto}
+html.fit .panel h2{font-size:1rem;margin-bottom:8px}
+html.fit .a-res{display:flex;flex-direction:column}
+html.fit .a-res .chartbox{flex:1;min-height:170px;height:auto}
+html.fit .results{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
+html.fit .res b{font-size:1.05rem}
+html.fit .eq{font-size:.82rem;line-height:1.6}
+html.fit table{font-size:.85rem}
+html.fit th,html.fit td{padding:4px 8px}
+@media(min-width:1600px){ html.lay-h .layout{grid-template-columns:minmax(340px,.85fr) minmax(0,1.6fr) minmax(380px,1fr)} }
+
+:root{--c-tau:#C77700;--c-set:#2F6BD8;--trace3:#6A4FB3;--on-trace:#FFFFFF;--trace-deep:#8A0F40}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c-tau:#F5B53D;--c-set:#6FA6FF;--trace3:#B9A6FF;--on-trace:#2A0616;--trace-deep:#B8416F}}
+:root[data-theme="dark"]{--c-tau:#F5B53D;--c-set:#6FA6FF;--trace3:#B9A6FF;--on-trace:#2A0616;--trace-deep:#B8416F}
+header{position:relative}
+.head-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.head-row>div{flex:1 1 300px}
+.gear{font:inherit;font-weight:700;padding:9px 14px;border-radius:10px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
+.pending{font-size:.85rem;color:var(--warn);margin:8px 0 0;min-height:1.2em}
+.scrim{position:fixed;inset:0;background:rgba(10,20,40,.35);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--panel);border-left:1.5px solid var(--line);
+  z-index:21;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(10,20,40,.18);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer[hidden],.scrim[hidden]{display:none}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1.5px solid var(--line)}
+.drawer-head h2{margin:0;font-size:1.15rem}
+.drawer-body{flex:1;overflow:auto;padding:6px 16px 16px}
+.drawer-foot{padding:12px 16px;border-top:1.5px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.cfg-group{border:0;padding:0;margin:16px 0 0}
+.cfg-group legend{font-weight:800;font-size:1rem;padding:0;margin-bottom:6px}
+.cfg-item{margin:10px 0 0}
+.cfg-item .lbl{font-size:.86rem;color:var(--ink-soft);margin-bottom:5px;display:block}
+.cfg-item .help{font-size:.8rem;color:var(--ink-soft);margin:5px 0 0}
+.xbtn{font:inherit;font-size:1.3rem;line-height:1;background:none;border:0;color:var(--ink);cursor:pointer;padding:6px 8px;border-radius:8px}
+@media (prefers-reduced-motion:no-preference){ .drawer{animation:slidein .18s ease-out} @keyframes slidein{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}} }
+.target{margin-top:14px;padding-top:10px;border-top:1.5px dashed var(--line)}
+.target .lbl-t{font-size:.85rem;font-weight:700}
+.res.c-vc{border-left-color:var(--trace)} .res.c-u{border-left-color:var(--trace2)} .res.c-tau{border-left-color:var(--c-tau)}
+.res.c-set{border-left-color:var(--c-set)} .res.c-i{border-left-color:var(--trace3)} .res.c-none{border-left-color:var(--line)}
+.res.ok,.res.bad{border-left:3px dotted var(--ink-soft)}
+.readout .r-vc{color:var(--trace)} .readout .r-i{color:var(--trace3)}
+th.h-vc{color:var(--trace)} th.h-i{color:var(--trace3)}
+.res.ok b{color:var(--trace2)} .res.bad b{color:var(--warn)}
+.layout>*{min-width:0}
+.modebar{display:flex;margin:0 0 12px;border:2px solid var(--ink);border-radius:12px;overflow:hidden;background:var(--paper)}
+.mode{flex:1 1 0;min-width:0;font:inherit;text-align:left;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:9px 11px;display:flex;flex-direction:column;gap:2px}
+.mode+.mode{border-left:2px solid var(--ink)}
+.mode b{font-size:.9rem;line-height:1.2}
+.mode span{font-size:.76rem;line-height:1.25;color:var(--ink-soft)}
+.mode[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.mode[aria-pressed="true"] span{color:var(--paper);opacity:.8}
+.mode:focus-visible{outline:3px solid var(--trace);outline-offset:-3px}
+.valrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.lbl-t{font-size:.85rem;font-weight:700}
+.calc-sum{margin:10px 0 0;font-size:.92rem;font-weight:700;color:var(--trace)}
+h3.sub{font-size:.9rem;margin:4px 0 6px;color:var(--ink-soft)}
+#designBox .eq{margin-bottom:12px}
+/* El menú de configuración no arrastra la página de atrás */
+.drawer-body{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+html.fit .panel{overscroll-behavior:contain}
+html.cfg-open,html.cfg-open body{overflow:hidden}
+.scrim{touch-action:none;overscroll-behavior:contain}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="head-row">
+  <div>
+    <h1>Simulador y calculadora de circuitos RC</h1>
+    <p>Respuesta al escalón de un circuito RC de primer orden, con el capacitor inicialmente descargado.</p>
+  </div>
+  <button class="gear" id="openCfg" aria-haspopup="dialog" aria-controls="cfg">⚙ Configuración</button>
+</header>
+
+<main class="layout">
+  <section class="panel a-sim">
+    <h2>Circuito</h2>
+    <div class="tabs">
+      <button class="tab" aria-pressed="true" data-type="serie">RC serie</button>
+      <button class="tab" aria-pressed="false" data-type="div">RC con divisor</button>
+    </div>
+    <div class="modebar" id="simMode" role="group" aria-label="Modo de trabajo">
+      <button class="mode" data-sm="design" aria-pressed="true"><b>⚡ Calcular componentes</b><span>Tengo la τ, calcula R o C</span></button>
+      <button class="mode" data-sm="sim" aria-pressed="false"><b>🔧 Probar componentes</b><span>Ya tengo R y C, ¿cómo responde?</span></button>
+    </div>
+    <svg class="sch" id="schSerie" viewBox="0 0 380 200" aria-label="Circuito RC serie">
+      <line class="w" x1="50" y1="40" x2="50" y2="85"/><line class="w" x1="36" y1="85" x2="64" y2="85"/>
+      <line class="w" x1="42" y1="95" x2="58" y2="95"/><line class="w" x1="36" y1="105" x2="64" y2="105"/>
+      <line class="w" x1="42" y1="115" x2="58" y2="115"/><line class="w" x1="50" y1="115" x2="50" y2="165"/>
+      <text x="70" y="104">U</text><text class="val" x="70" y="120" data-l="U"></text>
+      <line class="w" x1="50" y1="40" x2="100" y2="40"/><circle class="dot" cx="100" cy="40" r="3"/>
+      <line class="w sw" x1="100" y1="40" x2="140" y2="40"/><circle class="dot" cx="140" cy="40" r="3"/>
+      <text x="104" y="62" font-size="11">t = 0</text>
+      <line class="w" x1="140" y1="40" x2="170" y2="40"/>
+      <polyline class="w" points="170,40 176,30 188,50 200,30 212,50 224,30 236,50 242,40"/>
+      <line class="w" x1="242" y1="40" x2="300" y2="40"/>
+      <text x="196" y="22">R</text><text class="val" x="182" y="70" data-l="R"></text>
+      <line class="w" x1="300" y1="40" x2="300" y2="92"/><line class="w" x1="280" y1="92" x2="320" y2="92"/>
+      <line class="w" x1="280" y1="104" x2="320" y2="104"/><line class="w" x1="300" y1="104" x2="300" y2="165"/>
+      <text x="328" y="96">C</text><text class="val" x="328" y="112" data-l="C"></text>
+      <text x="262" y="124" font-size="12">Vc</text>
+      <line class="w" x1="50" y1="165" x2="300" y2="165"/>
+      <line class="w" x1="165" y1="165" x2="165" y2="178"/><line class="w" x1="153" y1="178" x2="177" y2="178"/>
+      <line class="w" x1="158" y1="184" x2="172" y2="184"/><line class="w" x1="162" y1="190" x2="168" y2="190"/>
+    </svg>
+    <svg class="sch hidden" id="schDiv" viewBox="0 0 380 200" aria-label="Circuito RC con divisor">
+      <line class="w" x1="40" y1="40" x2="40" y2="85"/><line class="w" x1="26" y1="85" x2="54" y2="85"/>
+      <line class="w" x1="32" y1="95" x2="48" y2="95"/><line class="w" x1="26" y1="105" x2="54" y2="105"/>
+      <line class="w" x1="32" y1="115" x2="48" y2="115"/><line class="w" x1="40" y1="115" x2="40" y2="165"/>
+      <text x="58" y="104">U</text><text class="val" x="58" y="120" data-l="U"></text>
+      <line class="w" x1="40" y1="40" x2="80" y2="40"/><circle class="dot" cx="80" cy="40" r="3"/>
+      <line class="w sw" x1="80" y1="40" x2="120" y2="40"/><circle class="dot" cx="120" cy="40" r="3"/>
+      <text x="84" y="62" font-size="11">t = 0</text>
+      <line class="w" x1="120" y1="40" x2="140" y2="40"/>
+      <polyline class="w" points="140,40 146,30 158,50 170,30 182,50 194,30 206,50 212,40"/>
+      <text x="162" y="22">R1</text><text class="val" x="152" y="70" data-l="R1"></text>
+      <line class="w" x1="212" y1="40" x2="330" y2="40"/><circle class="dot" cx="250" cy="40" r="3.5"/>
+      <line class="w" x1="250" y1="40" x2="250" y2="70"/>
+      <polyline class="w" points="250,70 240,76 260,86 240,96 260,106 240,116 250,122"/>
+      <line class="w" x1="250" y1="122" x2="250" y2="165"/>
+      <text x="212" y="96">R2</text><text class="val" x="198" y="112" data-l="R2"></text>
+      <line class="w" x1="330" y1="40" x2="330" y2="92"/><line class="w" x1="310" y1="92" x2="350" y2="92"/>
+      <line class="w" x1="310" y1="104" x2="350" y2="104"/><line class="w" x1="330" y1="104" x2="330" y2="165"/>
+      <text x="340" y="80">C</text><text class="val" x="300" y="128" data-l="C"></text>
+      <text x="274" y="88" font-size="12">Vc</text>
+      <line class="w" x1="40" y1="165" x2="330" y2="165"/><circle class="dot" cx="250" cy="165" r="3.5"/>
+      <line class="w" x1="150" y1="165" x2="150" y2="178"/><line class="w" x1="138" y1="178" x2="162" y2="178"/>
+      <line class="w" x1="143" y1="184" x2="157" y2="184"/><line class="w" x1="147" y1="190" x2="153" y2="190"/>
+    </svg>
+    <div id="designInputs" class="hidden">
+      <div class="segs" id="modes" style="margin-top:12px"></div>
+      <div class="controls" id="calcIn"></div>
+      <div class="valrow"><span class="lbl-t">Pasar al simulador:</span>
+        <div class="segs" id="valMode">
+          <button class="seg" data-vm="exact">Exactos</button>
+          <button class="seg" data-vm="comm">Comerciales</button>
+        </div>
+      </div>
+      <p class="calc-sum" id="calcSum"></p>
+      <p class="note" id="calcWarn"></p>
+    </div>
+    <div id="simInputs">
+    <div class="controls">
+      <div><label for="sU">U (V)</label><input id="sU" type="number" step="any" min="0" placeholder="ej. 5"></div>
+      <div class="f-serie"><label for="sR">R (kΩ)</label><input id="sR" type="number" step="any" min="0" placeholder="ej. 10"></div>
+      <div class="f-div hidden"><label for="sR1">R1 (kΩ)</label><input id="sR1" type="number" step="any" min="0" placeholder="ej. 10"></div>
+      <div class="f-div hidden"><label for="sR2">R2 (kΩ)</label><input id="sR2" type="number" step="any" min="0" placeholder="ej. 10"></div>
+      <div><label for="sC">C (µF)</label><input id="sC" type="number" step="any" min="0" placeholder="ej. 100"></div>
+    </div>
+    <div class="target">
+      <span class="lbl-t">Objetivo (opcional), para calcular el % de error</span>
+      <div class="controls" style="margin-top:6px">
+        <div><label for="dTau">τ deseada (s)</label><input id="dTau" type="number" step="any" min="0" placeholder="ej. 3"></div>
+        <div class="f-div hidden"><label for="dVf">Vc final deseado (V)</label><input id="dVf" type="number" step="any" min="0" placeholder="ej. 3"></div>
+      </div>
+    </div>
+    </div>
+    <p class="pending" id="pending" aria-live="polite"></p>
+    <div class="actionbar">
+      <button class="btn" id="run" disabled><span class="ico" aria-hidden="true">▶</span><span id="runTxt">Simular</span></button>
+      <button class="btn ghost" id="clear"><span class="ico" aria-hidden="true">↺</span>Limpiar</button>
+    </div>
+  </section>
+
+  <section class="panel a-res">
+    <h2>Respuesta Vc(t)</h2>
+    <div class="results" id="res"></div>
+    <div class="chartbox"><canvas id="ch"></canvas></div>
+    <div class="readout" id="ro"></div>
+  </section>
+
+  <section class="panel a-tbl">
+    <h2>Ecuaciones y tabla</h2>
+    <div id="designBox" class="hidden">
+      <h3 class="sub">Cálculo de diseño</h3>
+      <div class="eq" id="calcOut" style="margin-top:0"></div>
+      <h3 class="sub">Circuito resultante</h3>
+    </div>
+    <div class="eq" id="model" style="margin-top:0"></div>
+    <div class="tablewrap" style="margin-top:12px"><table id="tb"></table></div>
+    <p class="muted" style="margin-top:8px">Se considera cargado a partir de 5τ (99.3 % del valor final).</p>
+  </section>
+
+  <section class="panel a-hist">
+    <div class="hist-head">
+      <h2 style="margin:0">Últimas 10 simulaciones</h2>
+      <button class="btn ghost" id="histClear" style="padding:7px 12px;font-size:.85rem"><span class="ico" aria-hidden="true">🗑</span>Borrar historial</button>
+    </div>
+    <ul class="hist" id="hist"></ul>
+  </section>
+</main>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="cfg" role="dialog" aria-modal="true" aria-labelledby="cfgTitle" hidden>
+  <div class="drawer-head"><h2 id="cfgTitle">Configuración</h2><button class="xbtn" id="closeCfg" aria-label="Cerrar configuración">✕</button></div>
+  <div class="drawer-body" id="cfgBody"></div>
+  <div class="drawer-foot">
+    <button class="btn" id="doneCfg"><span class="ico" aria-hidden="true">✓</span>Listo</button>
+    <button class="btn ghost" id="resetCfg"><span class="ico" aria-hidden="true">↺</span>Restaurar configuración</button>
+  </div>
+</aside>
+
+
+<script>
+const $=id=>document.getElementById(id);
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const HKEY='rc-sim-historial-v1', CKEY='rc-sim-config-v1';
+
+/* ===== Configuración ===== */
+const DEFAULTS={auto:true,anim:'normal',range:6,showI:false,showInput:true,
+  tblStep:'1',tblDt:'',tblTo:5,tUnit:'auto',calcVals:'comm',eR:'E24',eC:'E12',sig:3,theme:'system',layout:'auto',tol:5};
+const SCHEMA=[
+ {g:'Pantalla',items:[
+  {k:'layout',l:'Distribución',o:[['auto','Automática'],['h','Horizontal'],['v','Vertical']],
+   h:'Automática usa horizontal en pantallas anchas y vertical en monitores girados, tabletas y celulares. En pantallas angostas siempre se usa vertical.'}]},
+ {g:'Simulación',items:[
+  {k:'auto',l:'Cuándo simular',o:[[true,'Al escribir los valores'],[false,'Al presionar Simular']]},
+  {k:'anim',l:'Animación al presionar Simular',o:[['none','Sin animación'],['fast','Rápida'],['normal','Normal'],['real','Tiempo real']],
+   h:'Tiempo real dura lo mismo que la carga del circuito físico, útil para compararla con el osciloscopio.'},
+  {k:'tol',l:'Error aceptable respecto a lo deseado',o:[[1,'1 %'],[5,'5 %'],[10,'10 %'],[20,'20 %']],
+   h:'El error se marca en verde si queda dentro de este margen y en ámbar si lo rebasa.'}]},
+ {g:'Gráfica',items:[
+  {k:'range',l:'Rango de tiempo',o:[[5,'5τ'],[6,'6τ'],[10,'10τ']]},
+  {k:'showI',l:'Curva de corriente de la fuente',o:[[false,'Ocultar'],[true,'Mostrar']]},
+  {k:'showInput',l:'Escalón de entrada',o:[[true,'Mostrar'],[false,'Ocultar']]}]},
+ {g:'Tabla',items:[
+  {k:'tblStep',l:'Intervalo entre filas',o:[['1','τ'],['0.5','τ/2'],['0.25','τ/4'],['dt','Tiempo fijo']]},
+  {k:'tblDt',l:'Intervalo fijo (segundos)',num:true,show:c=>c.tblStep==='dt',h:'Ejemplo: 0.5 para una fila cada medio segundo.'},
+  {k:'tblTo',l:'Hasta',o:[[5,'5τ'],[6,'6τ'],[10,'10τ']]},
+  {k:'tUnit',l:'Unidad de tiempo',o:[['auto','Automática'],['s','s'],['ms','ms']]}]},
+ {g:'Calculadora',items:[
+  {k:'calcVals',l:'Valores que pasan al simulador',o:[['exact','Exactos'],['comm','Comerciales']]},
+  {k:'eR',l:'Serie comercial de resistencias',o:[['E12','E12 (10 %)'],['E24','E24 (5 %)'],['E96','E96 (1 %)']]},
+  {k:'eC',l:'Serie comercial de capacitores',o:[['E6','E6 (20 %)'],['E12','E12 (10 %)']]}]},
+ {g:'Formato',items:[
+  {k:'sig',l:'Cifras significativas',o:[[3,'3'],[4,'4'],[5,'5']]},
+  {k:'theme',l:'Tema',o:[['system','Del sistema'],['light','Claro'],['dark','Oscuro']]}]}
+];
+function loadCfg(){ try{ return {...DEFAULTS,...JSON.parse(localStorage.getItem(CKEY)||'{}')}; }catch(e){ return {...DEFAULTS}; } }
+function saveCfg(){ try{ localStorage.setItem(CKEY,JSON.stringify(CFG)); }catch(e){} }
+let CFG=loadCfg();
+
+/* ===== Formato ===== */
+function fmt(v,d){ d=d||CFG.sig; if(!isFinite(v)) return '—'; return Number(v.toPrecision(d)).toString(); }
+function fmtI(a){ const x=Math.abs(a); if(x>=1) return fmt(a)+' A'; if(x>=1e-3) return fmt(a*1e3)+' mA'; return fmt(a*1e6)+' µA'; }
+function rounds(v){ return Math.abs(Number(v.toPrecision(CFG.sig))); }
+function fmtT(t){ if(t===0) return '0 s';
+  if(t<1e-3&&rounds(t*1e6)<1000) return fmt(t*1e6)+' µs';
+  if(t<1&&rounds(t*1e3)<1000) return fmt(t*1e3)+' ms';
+  return fmt(t)+' s'; }
+function fmtTu(t){ if(CFG.tUnit==='s') return fmt(t)+' s'; if(CFG.tUnit==='ms') return fmt(t*1e3)+' ms'; return fmtT(t); }
+function toChart(){ if(document.documentElement.classList.contains('fit')) return;
+  $('ch').closest('.panel').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); }
+function fmtR(r){ if(!isFinite(r)) return '—'; const d=Math.max(4,CFG.sig); if(r>=1e6) return fmt(r/1e6,d)+' MΩ'; if(r>=1e3) return fmt(r/1e3,d)+' kΩ'; return fmt(r,d)+' Ω'; }
+function fmtC(c){ if(!isFinite(c)) return '—'; const d=Math.max(4,CFG.sig); if(c>=1e-3) return fmt(c*1e3,d)+' mF'; if(c>=1e-6) return fmt(c*1e6,d)+' µF'; if(c>=1e-9) return fmt(c*1e9,d)+' nF'; return fmt(c*1e12,d)+' pF'; }
+function errAbs(a,b){ return Math.abs(a-b)/b*100; }
+function fmtE(e){ return (e<0.005?'0':(+e.toFixed(2)).toString())+' %'; }
+function dir(a,b){ const e=(a-b)/b; return Math.abs(e)<5e-5?'exacto':e>0?'arriba':'abajo'; }
+function pct(a,b){ const e=100*(a-b)/b; return (Math.abs(e)<0.005?'0':(+e.toFixed(2)).toString())+' %'; }
+function num(id){ const v=$(id).value; return v===''?NaN:+v; }
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+/* ===== Series comerciales ===== */
+const SERIES={
+  E6:[1.0,1.5,2.2,3.3,4.7,6.8],
+  E12:[1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2],
+  E24:[1.0,1.1,1.2,1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.7,3.0,3.3,3.6,3.9,4.3,4.7,5.1,5.6,6.2,6.8,7.5,8.2,9.1],
+  E96:Array.from({length:96},(_,i)=>Math.round(Math.pow(10,i/96)*100)/100)
+};
+function nearest(name,x){
+  const series=SERIES[name];
+  if(!(x>0)||!isFinite(x)) return NaN;
+  const dec=Math.pow(10,Math.floor(Math.log10(x))); let best=NaN,err=Infinity;
+  for(const m of [0.1,1,10]) for(const b of series){ const v=b*dec*m, e=Math.abs(Math.log(v/x)); if(e<err){err=e;best=v;} }
+  return best;
+}
+
+/* ===== Estado ===== */
+let TYPE='serie', animId=null, simP=null, dirty=false, autoSaveT=null;
+let calcMode={serie:'R',div:'C'}, calcRes=null, SIMMODE='design'; const calcVals={};
+
+function params(){
+  const U=num('sU'), C=num('sC')*1e-6, dTau=num('dTau'), dVf=TYPE==='div'?num('dVf'):NaN;
+  if(TYPE==='serie'){
+    const R=num('sR')*1e3, ok=U>0&&R>0&&C>0;
+    return {type:'serie',ok,U,R,C,K:1,Rth:R,tau:R*C,Vf:U,i0:U/R,iInf:0,dTau,dVf};
+  }
+  const R1=num('sR1')*1e3, R2=num('sR2')*1e3, ok=U>0&&R1>0&&R2>0&&C>0;
+  const K=R2/(R1+R2), Rth=R1*R2/(R1+R2);
+  return {type:'div',ok,U,R1,R2,C,K,Rth,tau:Rth*C,Vf:U*K,i0:U/R1,iInf:U/(R1+R2),dTau,dVf};
+}
+const vc=(p,t)=>p.Vf*(1-Math.exp(-t/p.tau));
+const iSrc=(p,t)=>p.iInf+(p.i0-p.iInf)*Math.exp(-t/p.tau);
+
+function labels(p){
+  const sch=$(TYPE==='serie'?'schSerie':'schDiv');
+  const map={U:isFinite(p.U)?fmt(p.U)+' V':'',R:isFinite(p.R)?fmtR(p.R):'',R1:isFinite(p.R1)?fmtR(p.R1):'',
+    R2:isFinite(p.R2)?fmtR(p.R2):'',C:isFinite(p.C)?fmtC(p.C):''};
+  sch.querySelectorAll('[data-l]').forEach(t=>t.textContent=map[t.dataset.l]||'');
+}
+function setSwitch(closed){
+  document.querySelectorAll('.sw').forEach(s=>{ const x1=+s.getAttribute('x1');
+    s.setAttribute('x2',closed?x1+40:x1+35); s.setAttribute('y2',closed?40:24); });
+}
+
+/* ===== Gráfica ===== */
+function draw(tEnd){
+  const p=simP&&simP.ok&&simP.type===TYPE?simP:null, cv=$('ch'), box=cv.parentElement;
+  const dpr=window.devicePixelRatio||1, W=box.clientWidth, H=box.clientHeight;
+  if(!W) return;
+  cv.width=W*dpr; cv.height=H*dpr; const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,W,H);
+  const showI=CFG.showI&&p;
+  const L=50,Rm=showI?60:12,T=26,B=34,pw=W-L-Rm,ph=H-T-B;
+  const ink=css('--ink'),soft=css('--ink-soft'),line=css('--line'),tr=css('--trace'),tr2=css('--trace2'),tr3=css('--trace3');
+  g.font='11px Archivo, sans-serif'; g.lineWidth=1;
+  if(!p){
+    g.strokeStyle=line; for(let k=0;k<=6;k++){ const x=L+pw*k/6; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); }
+    for(let k=0;k<=4;k++){ const y=T+ph*k/4; g.beginPath(); g.moveTo(L,y); g.lineTo(L+pw,y); g.stroke(); }
+    g.fillStyle=soft; g.textAlign='center'; g.font='14px Archivo, sans-serif';
+    g.fillText(CFG.auto?'Escribe todos los valores para ver la curva':'Escribe los valores y presiona Simular',L+pw/2,T+ph/2);
+    $('ro').innerHTML=''; return;
+  }
+  const n=+CFG.range, tMax=n*p.tau, vTop=(CFG.showInput?Math.max(p.U,p.Vf):p.Vf)*1.1;
+  const X=t=>L+t/tMax*pw, Y=v=>T+ph-v/vTop*ph, iTop=p.i0*1.1, Yi=i=>T+ph-i/iTop*ph;
+  const lblEvery=n>6?2:1;
+  for(let k=0;k<=n;k++){ g.strokeStyle=line; g.beginPath(); g.moveTo(X(k*p.tau),T); g.lineTo(X(k*p.tau),T+ph); g.stroke();
+    if(k%lblEvery===0){ g.fillStyle=soft; g.textAlign='center'; g.fillText(k+'τ',X(k*p.tau),T+ph+14); g.fillText(fmtTu(k*p.tau),X(k*p.tau),T+ph+27); } }
+  for(let k=0;k<=4;k++){ const v=vTop/1.1*k/4; g.strokeStyle=line; g.beginPath(); g.moveTo(L,Y(v)); g.lineTo(L+pw,Y(v)); g.stroke();
+    g.fillStyle=soft; g.textAlign='right'; g.fillText(fmt(v)+' V',L-5,Y(v)+4);
+    if(showI){ g.fillStyle=tr3; g.textAlign='left'; g.fillText(fmtI(p.i0*k/4),L+pw+5,Y(v)+4); } }
+  g.setLineDash([6,4]); g.lineWidth=1.6;
+  if(CFG.showInput){ g.strokeStyle=tr2; g.beginPath(); g.moveTo(L,Y(p.U)); g.lineTo(L+pw,Y(p.U)); g.stroke();
+    g.setLineDash([]); g.fillStyle=tr2; g.textAlign='right'; g.fillText('Entrada U',L+pw-4,Y(p.U)-5); g.setLineDash([6,4]); }
+  if(Math.abs(p.Vf-p.U)>1e-12||!CFG.showInput){ g.globalAlpha=.6; g.strokeStyle=tr; g.beginPath(); g.moveTo(L,Y(p.Vf)); g.lineTo(L+pw,Y(p.Vf)); g.stroke(); g.globalAlpha=1;
+    g.setLineDash([]); g.fillStyle=tr; g.textAlign='left'; g.fillText('Vc final',L+4,Y(p.Vf)-5); g.setLineDash([6,4]); }
+  g.setLineDash([]);
+  const te=Math.min(tEnd,tMax), N=400;
+  const mark=(t,col,txt)=>{ if(te<t||t>tMax) return; g.save(); g.strokeStyle=col; g.lineWidth=1.4; g.setLineDash([4,4]);
+    g.beginPath(); g.moveTo(X(t),T); g.lineTo(X(t),T+ph); g.stroke(); g.restore(); g.fillStyle=col; g.textAlign='center'; g.font='bold 11px Archivo, sans-serif';
+    g.fillText(txt,X(t),T-8); g.font='11px Archivo, sans-serif'; };
+  mark(p.tau,css('--c-tau'),'τ'); mark(5*p.tau,css('--c-set'),'5τ');
+  if(p.dTau>0){ const Vd=p.dVf>0?p.dVf:p.Vf; g.strokeStyle=soft; g.lineWidth=1.6; g.setLineDash([3,4]); g.beginPath();
+    for(let i=0;i<=N;i++){ const t=tMax*i/N, v=Vd*(1-Math.exp(-t/p.dTau)); i?g.lineTo(X(t),Y(v)):g.moveTo(X(t),Y(v)); } g.stroke(); g.setLineDash([]);
+    g.fillStyle=soft; g.textAlign='right'; g.fillText('Deseada',L+pw-4,Y(Vd)+14); }
+  if(showI){ g.strokeStyle=tr3; g.lineWidth=2; g.beginPath();
+    for(let i=0;i<=N;i++){ const t=te*i/N; i?g.lineTo(X(t),Yi(iSrc(p,t))):g.moveTo(X(t),Yi(iSrc(p,t))); } g.stroke();
+    g.fillStyle=tr3; g.textAlign='left'; g.fillText('i fuente',X(0)+6,Yi(p.i0)+14); }
+  g.strokeStyle=tr; g.lineWidth=2.6; g.beginPath();
+  for(let i=0;i<=N;i++){ const t=te*i/N; i?g.lineTo(X(t),Y(vc(p,t))):g.moveTo(X(t),Y(vc(p,t))); } g.stroke();
+  if(te>=p.tau){ const v=vc(p,p.tau); g.fillStyle=css('--c-tau'); g.beginPath(); g.arc(X(p.tau),Y(v),5,0,7); g.fill();
+    g.fillStyle=css('--c-tau'); g.textAlign='left'; g.fillText('63.2 % → '+fmt(v)+' V',X(p.tau)+8,Y(v)+14); }
+  g.fillStyle=tr; g.beginPath(); g.arc(X(te),Y(vc(p,te)),3.5,0,7); g.fill();
+  $('ro').innerHTML=`<span>t = <strong>${fmtTu(te)}</strong></span><span>Vc = <strong class="r-vc">${fmt(vc(p,te))} V</strong></span><span>i fuente = <strong class="r-i">${fmtI(iSrc(p,te))}</strong></span>`;
+}
+
+/* ===== Resultados, ecuaciones y tabla (a partir de lo simulado) ===== */
+function renderOutputs(){
+  const p=simP&&simP.ok&&simP.type===TYPE?simP:null;
+  const items=[['τ',p?fmtT(p.tau):'—','c-tau'],['Vc final',p?fmt(p.Vf)+' V':'—','c-vc'],['Entrada U',p?fmt(p.U)+' V':'—','c-u'],
+               ['5τ (establecimiento)',p?fmtT(5*p.tau):'—','c-set'],['i inicial',p?fmtI(p.i0):'—','c-i']];
+  if(TYPE==='div') items.splice(3,0,['Rth',p?fmtR(p.Rth):'—','c-none'],['K',p?fmt(p.K):'—','c-none']);
+  if(p&&p.dTau>0){ const e=errAbs(p.tau,p.dTau); items.push([`Error τ (${dir(p.tau,p.dTau)})`,fmtE(e),e<=CFG.tol?'ok':'bad']); }
+  if(p&&p.dVf>0){ const e=errAbs(p.Vf,p.dVf); items.push([`Error Vc final (${dir(p.Vf,p.dVf)})`,fmtE(e),e<=CFG.tol?'ok':'bad']); }
+  $('res').innerHTML=items.map(([a,b,c])=>`<div class="res ${c||''}"><b>${b}</b><span>${a}</span></div>`).join('');
+  if(!p){
+    $('model').textContent='Aquí aparecen la función de transferencia y la ecuación de Vc(t).';
+    $('tb').innerHTML='<tr><td class="muted">Sin datos todavía.</td></tr>'; return;
+  }
+  const d=Math.max(4,CFG.sig);
+  $('model').textContent = p.type==='serie' ?
+`τ = R·C = ${fmtR(p.R)} × ${fmtC(p.C)} = ${fmtT(p.tau)}
+
+G(s) = 1 / (τs + 1) = 1 / (${fmt(p.tau,d)}s + 1)
+Vc(t) = ${fmt(p.U,d)}(1 − e^(−t/${fmt(p.tau,d)}))  [V]
+i(t)  = ${fmtI(p.i0)} · e^(−t/τ)` :
+`K   = R2/(R1+R2) = ${fmt(p.K,d)}
+Rth = R1·R2/(R1+R2) = ${fmtR(p.Rth)}
+τ   = Rth·C = ${fmtT(p.tau)}
+
+G(s) = K / (τs + 1) = ${fmt(p.K,d)} / (${fmt(p.tau,d)}s + 1)
+Vc(t) = ${fmt(p.Vf,d)}(1 − e^(−t/${fmt(p.tau,d)}))  [V]`;
+  let errTxt='';
+  if(p.dTau>0) errTxt+=`\n%e τ = |τ − τd| / τd × 100
+     = |${fmt(p.tau,d)} − ${fmt(p.dTau,d)}| / ${fmt(p.dTau,d)} × 100 = ${fmtE(errAbs(p.tau,p.dTau))}`;
+  if(p.dVf>0) errTxt+=`\n%e Vf = |Vf − Vd| / Vd × 100
+     = |${fmt(p.Vf,d)} − ${fmt(p.dVf,d)}| / ${fmt(p.dVf,d)} × 100 = ${fmtE(errAbs(p.Vf,p.dVf))}`;
+  if(errTxt) $('model').textContent+='\n\nError respecto a lo deseado:'+errTxt;
+  const tEnd=(+CFG.tblTo)*p.tau;
+  let dt = CFG.tblStep==='dt' ? +CFG.tblDt : (+CFG.tblStep)*p.tau;
+  let note='';
+  if(!(dt>0)){ dt=p.tau; note='Escribe un intervalo fijo en la configuración; mientras, se usa τ.'; }
+  let nRows=Math.floor(tEnd/dt+1e-9)+1;
+  if(nRows>200){ nRows=200; note='La tabla se recortó a 200 filas. Usa un intervalo mayor para cubrir todo el rango.'; }
+  let rows='<tr><th>t / τ</th><th>Tiempo</th><th class="h-vc">Vc (V)</th><th>% final</th><th class="h-i">i fuente</th></tr>';
+  for(let k=0;k<nRows;k++){ const t=k*dt, r=t/p.tau;
+    rows+=`<tr><td>${fmt(r,3)}τ</td><td>${fmtTu(t)}</td><td>${fmt(vc(p,t),d)}</td><td>${fmt(100*(1-Math.exp(-r)),3)} %</td><td>${fmtI(iSrc(p,t))}</td></tr>`; }
+  if(note) rows+=`<tr><td colspan="5" class="note" style="text-align:left">${note}</td></tr>`;
+  $('tb').innerHTML=rows;
+}
+
+function refreshPending(){
+  const p=params();
+  $('run').disabled=!p.ok;
+  $('runTxt').textContent='Simular';
+  $('pending').textContent=(!CFG.auto&&dirty&&p.ok)?'Hay cambios sin simular.':'';
+}
+
+/* Se llama al escribir en los campos */
+function onInput(){
+  const p=params(); labels(p);
+  cancelAnimationFrame(animId); animId=null;
+  if(CFG.auto){
+    simP=p.ok?p:null; dirty=false; renderOutputs(); draw(Infinity);
+    clearTimeout(autoSaveT); if(p.ok) autoSaveT=setTimeout(()=>saveHist(p),2000);
+  } else { dirty=true; }
+  setSwitch(!!simP&&!dirty);
+  refreshPending();
+}
+
+/* Se llama al presionar el botón */
+function run(){
+  const p=params(); if(!p.ok) return;
+  clearTimeout(autoSaveT);
+  simP=p; dirty=false; saveHist(p); renderOutputs(); refreshPending(); toChart();
+  cancelAnimationFrame(animId); animId=null;
+  const durs={fast:1500,normal:3500,real:Math.min(CFG.range*p.tau*1000,600000)};
+  setSwitch(false);
+  if(CFG.anim==='none'||reduce){ setSwitch(true); draw(Infinity); return; }
+  draw(0);
+  setTimeout(()=>{ setSwitch(true); const t0=performance.now(), dur=durs[CFG.anim], tMax=CFG.range*p.tau;
+    const step=now=>{ const f=Math.min((now-t0)/dur,1); draw(f*tMax); if(f<1) animId=requestAnimationFrame(step); else animId=null; };
+    animId=requestAnimationFrame(step); },350);
+}
+
+/* ===== Historial ===== */
+function loadHist(){ try{ const v=localStorage.getItem(HKEY); const a=v?JSON.parse(v):[]; return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function storeHist(a){ try{ localStorage.setItem(HKEY,JSON.stringify(a)); }catch(e){} }
+function saveHist(p){
+  const e={type:p.type,U:p.U,C:p.C,tau:p.tau,Vf:p.Vf,ts:Date.now()};
+  if(p.dTau>0) e.dTau=p.dTau; if(p.dVf>0) e.dVf=p.dVf;
+  if(p.type==='serie') e.R=p.R; else {e.R1=p.R1; e.R2=p.R2;}
+  let a=loadHist();
+  const same=x=>x.type===e.type&&x.U===e.U&&x.C===e.C&&x.R===e.R&&x.R1===e.R1&&x.R2===e.R2&&x.dTau===e.dTau&&x.dVf===e.dVf;
+  a=a.filter(x=>!same(x)); a.unshift(e); a=a.slice(0,10); storeHist(a); renderHist();
+}
+function renderHist(){
+  const a=loadHist(), ul=$('hist');
+  $('histClear').disabled=!a.length;
+  if(!a.length){ ul.innerHTML=`<li><span class="muted">${CFG.auto?'Las simulaciones se guardan aquí 2 segundos después de dejar de escribir, o al presionar el botón.':'Cada vez que presiones Simular, la simulación se guarda aquí.'}</span></li>`; return; }
+  ul.innerHTML=a.map((e,i)=>{
+    const comps=e.type==='serie'?`R = ${fmtR(e.R)}, C = ${fmtC(e.C)}`:`R1 = ${fmtR(e.R1)}, R2 = ${fmtR(e.R2)}, C = ${fmtC(e.C)}`;
+    const d=new Date(e.ts).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<li><div class="h-main"><b>${e.type==='serie'?'RC serie':'RC con divisor'}: τ = ${fmtT(e.tau)}, Vc final = ${fmt(e.Vf)} V</b>
+      <span class="h-sub">U = ${fmt(e.U)} V, ${comps}.${e.dTau?` Error τ ${fmtE(errAbs(e.tau,e.dTau))}.`:''}${e.dVf?` Error Vf ${fmtE(errAbs(e.Vf,e.dVf))}.`:''} ${d}</span></div>
+      <button class="btn ghost" data-h="${i}"><span class="ico" aria-hidden="true">⤴</span>Cargar</button></li>`;
+  }).join('');
+  ul.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{
+    const e=loadHist()[+b.dataset.h]; if(!e) return;
+    setType(e.type,true); if(SIMMODE!=='sim') setSimMode('sim');
+    $('sU').value=+e.U.toPrecision(6); $('sC').value=+(e.C*1e6).toPrecision(6);
+    if(e.type==='serie') $('sR').value=+(e.R/1e3).toPrecision(6);
+    else { $('sR1').value=+(e.R1/1e3).toPrecision(6); $('sR2').value=+(e.R2/1e3).toPrecision(6); }
+    $('dTau').value=e.dTau?+e.dTau.toPrecision(6):''; $('dVf').value=e.dVf?+e.dVf.toPrecision(6):'';
+    const p=params(); labels(p); simP=p; dirty=false; cancelAnimationFrame(animId); animId=null; setSwitch(true);
+    renderOutputs(); draw(Infinity); refreshPending();
+  }));
+}
+
+/* ===== Calculadora ===== */
+const MODES={serie:[['R','Calcular R (conozco C)'],['C','Calcular C (conozco R)']],
+  div:[['C','Calcular R1 y R2 (conozco C)'],['R1','Calcular R2 y C (conozco R1)']]};
+const FIELDS={'serie-R':[['cTau','τ deseada (s)'],['cU','Fuente U (V)'],['cC','C (µF)']],'serie-C':[['cTau','τ deseada (s)'],['cU','Fuente U (V)'],['cR','R (kΩ)']],
+  'div-C':[['cTau','τ deseada (s)'],['cVm','Vmax deseado (V)'],['cU','Fuente U (V)'],['cC','C (µF)']],
+  'div-R1':[['cTau','τ deseada (s)'],['cVm','Vmax deseado (V)'],['cU','Fuente U (V)'],['cR1','R1 (kΩ)']]};
+function renderCalc(){
+  const m=calcMode[TYPE];
+  $('modes').innerHTML=MODES[TYPE].map(([k,t])=>`<button class="seg" aria-pressed="${k===m}" data-m="${k}">${t}</button>`).join('');
+  $('modes').querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{ calcMode[TYPE]=b.dataset.m; renderCalc(); }));
+  $('calcIn').innerHTML=FIELDS[TYPE+'-'+m].map(([id,l])=>`<div><label for="${id}">${l}</label><input id="${id}" type="number" step="any" min="0" value="${calcVals[id]??''}"></div>`).join('');
+  $('calcIn').querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{ calcVals[i.id]=i.value; calc(); }));
+  calc();
+}
+function calc(){
+  const m=calcMode[TYPE], key=TYPE+'-'+m; calcRes=null;
+  const g=id=>{ const v=calcVals[id]; return v===undefined||v===''?NaN:+v; };
+  const tau=g('cTau'), eR=CFG.eR, eC=CFG.eC, d=Math.max(4,CFG.sig); let out='', warn='';
+  const need='Escribe todos los datos para ver el cálculo paso a paso.';
+  if(key==='serie-R'){
+    const C=g('cC')*1e-6, U=g('cU');
+    if(tau>0&&C>0&&U>0){ const R=tau/C, Re=nearest(eR,R), te=Re*C;
+      out=`Paso 1:  τ = R·C   →   R = τ / C
+Paso 2:  R = ${fmt(tau,d)} s / ${fmtC(C)}
+Paso 3:  R = ${fmtR(R)}
+
+Comercial más cercana (${eR}): ${fmtR(Re)}
+τ con esa R = ${fmtT(te)}  (error ${pct(te,tau)})`;
+      calcRes={exact:{sU:U,sR:R,sC:C},comm:{sU:U,sR:Re,sC:C}};
+      if(R<100) warn='R muy baja: la corriente inicial sería alta. Prueba con un capacitor más chico.';
+      else if(R>1e6) warn='R mayor a 1 MΩ: el circuito se vuelve sensible a fugas y ruido. Prueba con un capacitor más grande.';
+    } else out=need;
+  }
+  if(key==='serie-C'){
+    const R=g('cR')*1e3, U=g('cU');
+    if(tau>0&&R>0&&U>0){ const C=tau/R, Ce=nearest(eC,C), te=R*Ce;
+      out=`Paso 1:  τ = R·C   →   C = τ / R
+Paso 2:  C = ${fmt(tau,d)} s / ${fmtR(R)}
+Paso 3:  C = ${fmtC(C)}
+
+Comercial más cercano (${eC}): ${fmtC(Ce)}
+τ con ese C = ${fmtT(te)}  (error ${pct(te,tau)})`;
+      calcRes={exact:{sU:U,sR:R,sC:C},comm:{sU:U,sR:R,sC:Ce}};
+      if(C>0.01) warn='Capacitor muy grande (más de 10 000 µF). Prueba con una R mayor.';
+    } else out=need;
+  }
+  if(TYPE==='div'){
+    const Vm=g('cVm'), U=g('cU'), K=Vm/U, base=tau>0&&Vm>0&&U>0;
+    if(base&&!(K<1)){ out=`K = Vmax / U = ${fmt(Vm)} / ${fmt(U)} = ${fmt(K)}\n\nNo se puede: el divisor siempre da menos voltaje que la fuente.`; warn='Usa una fuente U mayor que Vmax.'; }
+    else if(key==='div-C'){
+      const C=g('cC')*1e-6;
+      if(base&&C>0){ const Rth=tau/C, R1=Rth/K, R2=Rth/(1-K), R1e=nearest(eR,R1), R2e=nearest(eR,R2);
+        const te=R1e*R2e/(R1e+R2e)*C, Ve=U*R2e/(R1e+R2e);
+        out=`Paso 1:  K = Vmax / U = ${fmt(Vm,d)} / ${fmt(U,d)} = ${fmt(K,d)}
+Paso 2:  Rth = τ / C = ${fmt(tau,d)} / ${fmtC(C)} = ${fmtR(Rth)}
+Paso 3:  Rth = R1·K   →   R1 = Rth / K = ${fmtR(R1)}
+Paso 4:  R2 = Rth / (1 − K) = ${fmtR(R2)}
+
+Comprobación: R1∥R2 = ${fmtR(R1*R2/(R1+R2))},  U·R2/(R1+R2) = ${fmt(U*R2/(R1+R2),d)} V
+
+Comerciales (${eR}): R1 = ${fmtR(R1e)},  R2 = ${fmtR(R2e)}
+Con ellas: τ = ${fmtT(te)} (error ${pct(te,tau)}),  Vmax = ${fmt(Ve,d)} V (error ${pct(Ve,Vm)})`;
+        calcRes={exact:{sU:U,sR1:R1,sR2:R2,sC:C},comm:{sU:U,sR1:R1e,sR2:R2e,sC:C}};
+        if(Math.min(R1,R2)<100) warn='Alguna resistencia queda muy baja. Prueba con un capacitor más chico.';
+        else if(Math.max(R1,R2)>1e6) warn='Alguna resistencia pasa de 1 MΩ. Prueba con un capacitor más grande.';
+      } else out=need;
+    }
+    else if(key==='div-R1'){
+      const R1=g('cR1')*1e3;
+      if(base&&R1>0){ const R2=K*R1/(1-K), Rth=R1*K, C=tau/Rth, R2e=nearest(eR,R2), Ce=nearest(eC,C);
+        const te=R1*R2e/(R1+R2e)*Ce, Ve=U*R2e/(R1+R2e);
+        out=`Paso 1:  K = Vmax / U = ${fmt(Vm,d)} / ${fmt(U,d)} = ${fmt(K,d)}
+Paso 2:  K = R2/(R1+R2)   →   R2 = K·R1 / (1 − K) = ${fmtR(R2)}
+Paso 3:  Rth = R1·K = ${fmtR(Rth)}
+Paso 4:  C = τ / Rth = ${fmt(tau,d)} / ${fmtR(Rth)} = ${fmtC(C)}
+
+Comerciales: R2 = ${fmtR(R2e)} (${eR}),  C = ${fmtC(Ce)} (${eC})
+Con ellos: τ = ${fmtT(te)} (error ${pct(te,tau)}),  Vmax = ${fmt(Ve,d)} V (error ${pct(Ve,Vm)})`;
+        calcRes={exact:{sU:U,sR1:R1,sR2:R2,sC:C},comm:{sU:U,sR1:R1,sR2:R2e,sC:Ce}};
+        if(C>0.01) warn='Capacitor muy grande. Prueba con una R1 mayor.';
+      } else out=need;
+    }
+  }
+  $('calcOut').textContent=out; $('calcWarn').textContent=warn;
+  document.querySelectorAll('[data-vm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vm===CFG.calcVals));
+  if(calcRes){
+    const v=calcRes[CFG.calcVals==='comm'?'comm':'exact'], parts=[];
+    for(const [id,x] of Object.entries(v)){ if(id==='sU') continue;
+      parts.push((id==='sR'?'R':id==='sR1'?'R1':id==='sR2'?'R2':'C')+' = '+(id==='sC'?fmtC(x):fmtR(x))); }
+    $('calcSum').textContent='Simulando con: '+parts.join(', ')+(CFG.calcVals==='comm'?' (comerciales)':' (exactos)');
+  } else $('calcSum').textContent='';
+  if(SIMMODE==='design'&&calcRes) applyCalc();
+}
+function setSimMode(m){
+  SIMMODE=m;
+  document.querySelectorAll('[data-sm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sm===m));
+  $('designInputs').classList.toggle('hidden',m!=='design');
+  $('simInputs').classList.toggle('hidden',m==='design');
+  $('designBox').classList.toggle('hidden',m!=='design');
+  calc();
+}
+function applyCalc(){
+  if(!calcRes) return; const v=calcRes[CFG.calcVals==='comm'?'comm':'exact'];
+  for(const [id,x] of Object.entries(v)){ const val=id==='sU'?x:id==='sC'?x*1e6:x/1e3; $(id).value=+val.toPrecision(6); }
+  const t=+calcVals.cTau; if(t>0) $('dTau').value=t;
+  if(TYPE==='div'){ const vm=+calcVals.cVm; $('dVf').value=vm>0?vm:''; }
+  onInput();
+}
+
+/* ===== Tipo de circuito ===== */
+function setType(t,silent){
+  TYPE=t;
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-pressed',b.dataset.type===t));
+  $('schSerie').classList.toggle('hidden',t!=='serie'); $('schDiv').classList.toggle('hidden',t!=='div');
+  document.querySelectorAll('.f-serie').forEach(e=>e.classList.toggle('hidden',t!=='serie'));
+  document.querySelectorAll('.f-div').forEach(e=>e.classList.toggle('hidden',t!=='div'));
+  renderCalc();
+  if(!silent){ const p=params(); simP=(CFG.auto&&p.ok)?p:(simP&&simP.type===t?simP:null); dirty=!CFG.auto&&p.ok; labels(p); renderOutputs(); draw(Infinity); refreshPending(); }
+}
+
+/* ===== Distribución de pantalla ===== */
+function applyLayout(){
+  const w=window.innerWidth, h=window.innerHeight, r=document.documentElement;
+  let m=CFG.layout;
+  if(m==='auto') m=(w>=h&&w>=1000)?'h':'v';
+  if(m==='h'&&w<900) m='v';
+  const wide=w>=700;
+  const fit = m==='h' ? h>=600 : (wide&&h>=860);
+  r.classList.toggle('lay-h',m==='h'); r.classList.toggle('lay-v',m==='v');
+  r.classList.toggle('wide',wide); r.classList.toggle('fit',fit);
+}
+
+/* ===== Panel de configuración ===== */
+function applyTheme(){ const r=document.documentElement; if(CFG.theme==='system') r.removeAttribute('data-theme'); else r.dataset.theme=CFG.theme; }
+function renderCfg(){
+  $('cfgBody').innerHTML=SCHEMA.map(gr=>`<fieldset class="cfg-group"><legend>${gr.g}</legend>${gr.items.map(it=>{
+    if(it.show&&!it.show(CFG)) return '';
+    const ctl=it.num?`<input id="cfg-${it.k}" type="number" step="any" min="0" value="${CFG[it.k]}">`
+      :`<div class="segs">${it.o.map(([v,t])=>`<button class="seg" aria-pressed="${CFG[it.k]===v}" data-k="${it.k}" data-v='${JSON.stringify(v)}'>${t}</button>`).join('')}</div>`;
+    return `<div class="cfg-item"><span class="lbl">${it.l}</span>${ctl}${it.h?`<p class="help">${it.h}</p>`:''}</div>`;
+  }).join('')}</fieldset>`).join('');
+  $('cfgBody').querySelectorAll('[data-k]').forEach(b=>b.addEventListener('click',()=>{ setCfg(b.dataset.k,JSON.parse(b.dataset.v)); renderCfg(); $('cfgBody').querySelector(`[data-k="${b.dataset.k}"][aria-pressed="true"]`)?.focus(); }));
+  const dt=$('cfg-tblDt'); if(dt) dt.addEventListener('input',()=>setCfg('tblDt',dt.value));
+}
+function setCfg(k,v){
+  const wasAuto=CFG.auto; CFG[k]=v; saveCfg(); applyTheme(); applyLayout();
+  if(k==='auto'&&v&&!wasAuto){ const p=params(); simP=p.ok?p:null; dirty=false; }
+  renderOutputs(); draw(Infinity); calc(); renderHist(); refreshPending(); labels(params());
+}
+let lastFocus=null;
+function openCfg(){ lastFocus=document.activeElement; renderCfg(); document.documentElement.classList.add('cfg-open'); $('scrim').hidden=false; $('cfg').hidden=false; $('closeCfg').focus(); }
+function closeCfg(){ document.documentElement.classList.remove('cfg-open'); $('scrim').hidden=true; $('cfg').hidden=true; lastFocus?.focus(); }
+$('openCfg').addEventListener('click',openCfg);
+$('closeCfg').addEventListener('click',closeCfg); $('doneCfg').addEventListener('click',closeCfg); $('scrim').addEventListener('click',closeCfg);
+$('resetCfg').addEventListener('click',()=>{ CFG={...DEFAULTS}; saveCfg(); applyTheme(); renderCfg(); setCfg('auto',true); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('cfg').hidden) closeCfg(); });
+
+/* ===== Eventos ===== */
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>setType(b.dataset.type)));
+['sU','sR','sR1','sR2','sC','dTau','dVf'].forEach(id=>$(id).addEventListener('input',onInput));
+$('run').addEventListener('click',run);
+$('clear').addEventListener('click',()=>{ ['sU','sR','sR1','sR2','sC','dTau','dVf'].forEach(id=>$(id).value=''); if(SIMMODE==='design'){ for(const k in calcVals) delete calcVals[k]; renderCalc(); } simP=null; dirty=false; onInput(); });
+document.querySelectorAll('[data-sm]').forEach(b=>b.addEventListener('click',()=>setSimMode(b.dataset.sm)));
+document.querySelectorAll('[data-vm]').forEach(b=>b.addEventListener('click',()=>setCfg('calcVals',b.dataset.vm)));
+$('histClear').addEventListener('click',()=>{ storeHist([]); renderHist(); });
+window.addEventListener('resize',()=>{ applyLayout(); if(!animId) draw(Infinity); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>draw(Infinity));
+if(window.ResizeObserver){ new ResizeObserver(()=>{ if(!animId) draw(Infinity); }).observe($('ch').parentElement); }
+
+applyTheme(); applyLayout(); setType('serie'); setSimMode('design'); renderHist(); setSwitch(!!simP);
+</script>
+</body>
+</html>
